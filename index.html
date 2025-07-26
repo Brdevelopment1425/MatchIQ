@@ -1,233 +1,400 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <title>FutbolAI - Maç Tahmin & Detay</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <style>
-    :root {
-      --bg: #f5f7fa;
-      --text: #222;
-      --card: #fff;
-      --highlight: #28a745;
-      --primary: #007bff;
-      --shadow: rgba(0,0,0,0.15);
-    }
-    body.dark-mode {
-      --bg: #121212;
-      --text: #eee;
-      --card: #1e1e1e;
-      --highlight: #90ee90;
-      --primary: #3399ff;
-      --shadow: rgba(0,0,0,0.6);
-    }
+<meta charset="UTF-8" />
+<title>FutbolAI - Maç Tahmin & Detay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+  :root {
+    --bg: #f5f7fa;
+    --text: #222;
+    --card: #fff;
+    --highlight: #28a745;
+    --primary: #007bff;
+    --shadow: rgba(0,0,0,0.15);
+    --transition: 0.4s cubic-bezier(0.4,0,0.2,1);
+  }
+  body.dark-mode {
+    --bg: #121212;
+    --text: #eee;
+    --card: #1e1e1e;
+    --highlight: #90ee90;
+    --primary: #3399ff;
+    --shadow: rgba(0,0,0,0.6);
+  }
 
-    body {
-      background: var(--bg);
-      color: var(--text);
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-      margin: 0; padding: 20px;
-      transition: all 0.3s ease;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
+  /* Reset */
+  * {
+    box-sizing: border-box;
+  }
 
-    header {
-      width: 100%;
-      max-width: 900px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-    h1 {
-      font-size: 1.8rem;
-      margin: 0;
-      flex-grow: 1;
-    }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0; padding: 0;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow-x: hidden;
+    transition: background 0.5s, color 0.5s;
+  }
 
-    select, button {
-      padding: 8px 15px;
-      font-size: 1rem;
-      border-radius: 6px;
-      border: 1.5px solid var(--primary);
-      background: var(--card);
-      color: var(--text);
-      cursor: pointer;
-      transition: background 0.3s, color 0.3s;
-    }
-    select:hover, button:hover {
-      background: var(--primary);
-      color: white;
-      border-color: var(--primary);
-    }
-    select:focus, button:focus {
-      outline: none;
-      box-shadow: 0 0 5px var(--primary);
-    }
+  header {
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 30px;
+    box-shadow: 0 4px 10px var(--shadow);
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+  }
+  header h1 {
+    font-size: 1.9rem;
+    margin: 0;
+    user-select: none;
+    font-weight: 900;
+    color: var(--primary);
+    letter-spacing: 0.05em;
+  }
 
-    .toggle-btn {
-      background: none;
-      border: 2px solid var(--primary);
-      color: var(--primary);
-      font-weight: bold;
-      padding: 6px 14px;
-      border-radius: 8px;
-      user-select: none;
-    }
+  .controls {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+  }
 
-    .container {
-      width: 100%;
-      max-width: 900px;
-    }
+  select, button {
+    padding: 10px 18px;
+    font-size: 1rem;
+    border-radius: 8px;
+    border: 2px solid var(--primary);
+    background: var(--card);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.3s ease, color 0.3s ease, box-shadow 0.3s ease;
+    font-weight: 600;
+    user-select: none;
+  }
+  select:hover, button:hover {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 0 8px var(--primary);
+  }
+  select:focus, button:focus {
+    outline: none;
+    box-shadow: 0 0 10px var(--primary);
+  }
 
-    #matchList {
-      display: grid;
-      grid-template-columns: repeat(auto-fit,minmax(280px,1fr));
-      gap: 15px;
+  button.toggle-btn {
+    font-weight: 700;
+    font-size: 1.3rem;
+    padding: 6px 14px;
+    border-radius: 50%;
+    width: 42px;
+    height: 42px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  /* Yeni: Yan Menü Lig Seçimi */
+  .sidebar {
+    position: fixed;
+    top: 64px;
+    left: 0;
+    width: 240px;
+    height: calc(100% - 64px);
+    background: var(--card);
+    box-shadow: 2px 0 10px var(--shadow);
+    padding: 20px 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+    font-weight: 700;
+    color: var(--primary);
+    transform: translateX(-260px);
+    transition: transform var(--transition);
+    z-index: 999;
+    user-select: none;
+  }
+  .sidebar.show {
+    transform: translateX(0);
+  }
+  .sidebar h2 {
+    margin: 0 0 10px 0;
+    font-size: 1.2rem;
+    border-bottom: 2px solid var(--primary);
+    padding-bottom: 5px;
+  }
+  .sidebar button {
+    background: none;
+    border: none;
+    padding: 10px 8px;
+    text-align: left;
+    border-radius: 8px;
+    font-size: 1.05rem;
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.25s ease;
+  }
+  .sidebar button:hover,
+  .sidebar button.active {
+    background: var(--primary);
+    color: white;
+  }
+
+  /* Ana içerik */
+  main {
+    margin-left: 0;
+    padding: 20px 15px 40px;
+    max-width: 900px;
+    width: 100%;
+    margin: 75px auto 40px;
+    transition: margin-left var(--transition);
+  }
+  main.shifted {
+    margin-left: 260px;
+  }
+
+  /* Tarih filtresi butonları */
+  .filter-group {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 25px;
+    justify-content: center;
+  }
+  .filter-group button {
+    background: var(--card);
+    border: 2px solid var(--primary);
+    border-radius: 8px;
+    padding: 8px 18px;
+    cursor: pointer;
+    font-weight: 600;
+    font-size: 1rem;
+    color: var(--text);
+    transition: background 0.3s ease, color 0.3s ease;
+  }
+  .filter-group button.active {
+    background: var(--primary);
+    color: white;
+    box-shadow: 0 0 10px var(--primary);
+  }
+  .filter-group button:hover:not(.active) {
+    background: var(--primary);
+    color: white;
+  }
+
+  #matchList {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,minmax(300px,1fr));
+    gap: 18px;
+  }
+  .match-card {
+    background: var(--card);
+    padding: 20px 25px;
+    border-radius: 14px;
+    box-shadow: 0 6px 18px var(--shadow);
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    user-select: none;
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+    opacity: 0;
+    animation: fadeInUp 0.6s forwards;
+  }
+  .match-card:nth-child(1) { animation-delay: 0.1s; }
+  .match-card:nth-child(2) { animation-delay: 0.2s; }
+  .match-card:nth-child(3) { animation-delay: 0.3s; }
+  .match-card:nth-child(4) { animation-delay: 0.4s; }
+  .match-card:nth-child(5) { animation-delay: 0.5s; }
+  .match-card:nth-child(6) { animation-delay: 0.6s; }
+  .match-card:nth-child(7) { animation-delay: 0.7s; }
+  .match-card:nth-child(8) { animation-delay: 0.8s; }
+  .match-card:nth-child(9) { animation-delay: 0.9s; }
+  .match-card:nth-child(10) { animation-delay: 1s; }
+
+  .match-card:hover, .match-card:focus-visible {
+    transform: scale(1.05);
+    box-shadow: 0 12px 28px var(--shadow);
+    outline: none;
+  }
+
+  .teams {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 10px;
+    font-weight: 700;
+    font-size: 1.15rem;
+  }
+  .teams div {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+  .teams img {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    object-fit: contain;
+    filter: drop-shadow(0 0 2px var(--primary));
+  }
+  .match-date {
+    font-size: 0.9rem;
+    opacity: 0.7;
+    margin-top: 10px;
+    text-align: center;
+    font-weight: 600;
+  }
+
+  #result {
+    background: var(--card);
+    margin-top: 30px;
+    padding: 28px 32px;
+    border-radius: 16px;
+    box-shadow: 0 14px 38px var(--shadow);
+    max-width: 900px;
+    width: 100%;
+    user-select: text;
+    line-height: 1.5;
+    word-wrap: break-word;
+    opacity: 0;
+    transform: translateY(15px);
+    transition: opacity 0.5s ease, transform 0.5s ease;
+  }
+  #result.show {
+    opacity: 1;
+    transform: translateY(0);
+  }
+  #result h2 {
+    margin-top: 0;
+    margin-bottom: 18px;
+    font-weight: 900;
+    color: var(--primary);
+    font-size: 1.8rem;
+  }
+  #result .teams {
+    margin-bottom: 18px;
+  }
+  #result ul {
+    padding-left: 20px;
+    margin-top: 10px;
+    margin-bottom: 20px;
+  }
+  #result ul li {
+    margin-bottom: 7px;
+    font-size: 1.05rem;
+  }
+  .highlight {
+    color: var(--highlight);
+    font-weight: 900;
+    font-size: 1.15rem;
+  }
+
+  footer {
+    margin-top: auto;
+    padding: 18px 0;
+    font-size: 1rem;
+    color: var(--text);
+    opacity: 0.55;
+    width: 100%;
+    max-width: 900px;
+    text-align: center;
+    user-select: none;
+  }
+
+  @keyframes fadeInUp {
+    from {opacity: 0; transform: translateY(15px);}
+    to {opacity: 1; transform: translateY(0);}
+  }
+
+  /* Responsive */
+  @media (max-width: 720px) {
+    .sidebar {
+      width: 180px;
     }
-    .match-card {
-      background: var(--card);
-      padding: 15px 20px;
-      border-radius: 12px;
-      box-shadow: 0 4px 12px var(--shadow);
-      cursor: pointer;
-      transition: transform 0.15s ease;
-      display: flex;
-      flex-direction: column;
-      justify-content: space-between;
-      user-select: none;
+    main.shifted {
+      margin-left: 180px;
     }
-    .match-card:hover {
-      transform: scale(1.03);
-      box-shadow: 0 8px 18px var(--shadow);
-    }
+  }
+
+  @media (max-width: 520px) {
     .teams {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
+      flex-direction: column;
       gap: 8px;
-      font-weight: 600;
-      font-size: 1.1rem;
+      font-size: 1rem;
     }
-    .teams div {
-      display: flex;
-      align-items: center;
-      gap: 8px;
+    header {
+      flex-wrap: wrap;
+      gap: 12px;
+      justify-content: center;
     }
-    .teams img {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      object-fit: contain;
-      filter: drop-shadow(0 0 1px var(--primary));
+    main, footer {
+      margin: 75px 15px 40px;
+      max-width: none;
     }
-    .match-date {
-      font-size: 0.85rem;
-      opacity: 0.7;
-      text-align: center;
-    }
-
-    #result {
-      background: var(--card);
-      margin-top: 25px;
-      padding: 25px;
-      border-radius: 14px;
-      box-shadow: 0 8px 20px var(--shadow);
-      max-width: 900px;
-      width: 100%;
-      user-select: text;
-      line-height: 1.4;
-      word-wrap: break-word;
-    }
-
-    #result h2 {
-      margin-top: 0;
-      margin-bottom: 15px;
-      font-weight: 700;
-      color: var(--primary);
-    }
-    #result .teams {
-      margin-bottom: 15px;
-    }
-    #result ul {
-      padding-left: 18px;
-      margin-top: 5px;
-      margin-bottom: 15px;
-    }
-    #result ul li {
-      margin-bottom: 5px;
+    .sidebar {
+      top: 56px;
+      height: calc(100% - 56px);
+      width: 160px;
+      padding: 15px 12px;
       font-size: 0.95rem;
     }
-    .highlight {
-      color: var(--highlight);
-      font-weight: 700;
+    .sidebar h2 {
+      font-size: 1rem;
     }
+  }
 
-    footer {
-      margin-top: auto;
-      padding: 15px 0;
-      font-size: 0.9rem;
-      color: var(--text);
-      opacity: 0.6;
-      width: 100%;
-      max-width: 900px;
-      text-align: center;
-      user-select: none;
-    }
+  /* Animasyonlı tıklanabilir hover efekti için */
+  .match-card:active {
+    transform: scale(0.98);
+    transition-duration: 0.15s;
+  }
 
-    @media (max-width: 480px) {
-      header {
-        justify-content: center;
-      }
-      h1 {
-        text-align: center;
-        flex-grow: unset;
-        width: 100%;
-        margin-bottom: 10px;
-      }
-      .teams {
-        flex-direction: column;
-        gap: 5px;
-      }
-      #result ul {
-        padding-left: 12px;
-      }
-    }
-  </style>
+</style>
 </head>
 <body>
 
 <header>
-  <h1 id="title">⚽ FutbolAI - Süper Lig</h1>
+  <h1 id="title">⚽ FutbolAI</h1>
 
-  <select id="languageSelect" aria-label="Dil Seçimi">
-    <option value="tr" selected>🇹🇷 Türkçe</option>
-    <option value="en">🇬🇧 English</option>
-  </select>
+  <div class="controls">
+    <select id="languageSelect" aria-label="Dil Seçimi">
+      <option value="tr" selected>🇹🇷 Türkçe</option>
+      <option value="en">🇬🇧 English</option>
+    </select>
 
-  <select id="leagueSelect" aria-label="Lig Seçimi">
-    <option value="203" selected>Süper Lig</option>
-    <option value="39">Premier League</option>
-    <option value="140">La Liga</option>
-    <option value="135">Serie A</option>
-    <option value="78">Bundesliga</option>
-    <option value="61">Ligue 1</option>
-  </select>
+    <button id="sidebarToggle" aria-label="Lig Seçim Menüsünü Aç/Kapat" title="Lig Seçim Menüsü">☰</button>
 
-  <button class="toggle-btn" onclick="toggleDark()" aria-label="Koyu/Açık Mod">🌙</button>
+    <button class="toggle-btn" onclick="toggleDark()" aria-label="Koyu/Açık Mod">🌙</button>
+  </div>
 </header>
 
-<div class="container">
+<nav class="sidebar" id="sidebar" aria-label="Lig Seçimi Menüsü">
+  <h2>Lig Seçimi</h2>
+  <button data-league="203" class="active" tabindex="0">🇹🇷 Süper Lig</button>
+  <button data-league="39" tabindex="0">🇬🇧 Premier League</button>
+  <button data-league="140" tabindex="0">🇪🇸 La Liga</button>
+  <button data-league="135" tabindex="0">🇮🇹 Serie A</button>
+  <button data-league="78" tabindex="0">🇩🇪 Bundesliga</button>
+  <button data-league="61" tabindex="0">🇫🇷 Ligue 1</button>
+</nav>
+
+<main id="mainContent">
+
+  <div class="filter-group" role="group" aria-label="Tarih filtresi">
+    <button data-filter="all" class="active" aria-pressed="true">Tüm Maçlar</button>
+    <button data-filter="future" aria-pressed="false">Gelecek</button>
+    <button data-filter="past" aria-pressed="false">Geçmiş</button>
+  </div>
+
   <div id="matchList" aria-live="polite" aria-atomic="true"></div>
 
-  <div id="result" role="region" aria-live="polite" style="display:none;"></div>
-</div>
+  <div id="result" role="region" aria-live="polite" aria-atomic="true" tabindex="0" aria-label="Maç Detayları"></div>
+</main>
 
 <footer>
   © 2025 FutbolAI | Powered by API-Football
@@ -237,15 +404,18 @@
   const API_KEY = "423dfe945e36f0e20c41891f56899c9a";
 
   const languageSelect = document.getElementById("languageSelect");
-  const leagueSelect = document.getElementById("leagueSelect");
+  const sidebar = document.getElementById("sidebar");
+  const sidebarToggle = document.getElementById("sidebarToggle");
   const matchList = document.getElementById("matchList");
   const resultDiv = document.getElementById("result");
   const title = document.getElementById("title");
+  const mainContent = document.getElementById("mainContent");
+  const filterButtons = document.querySelectorAll(".filter-group button");
+  const leagueButtons = sidebar.querySelectorAll("button[data-league]");
 
-  // Metinler (tr/en)
   const texts = {
     tr: {
-      title: "⚽ FutbolAI - Süper Lig",
+      title: "⚽ FutbolAI",
       loading: "Yükleniyor...",
       noMatches: "Maç bulunamadı.",
       matchDetails: "📝 Maç Detayları",
@@ -256,12 +426,15 @@
       notPlayed: "⏳ Maç henüz oynanmadı.",
       predictedScore: "🤖 AI Tahmini",
       stadium: "Stadyum",
+      allMatches: "Tüm Maçlar",
+      upcoming: "Gelecek",
+      past: "Geçmiş",
       selectLeague: "Lig Seçimi",
       selectLanguage: "Dil Seçimi",
       darkMode: "Koyu/Açık Mod",
     },
     en: {
-      title: "⚽ FutbolAI - Super League",
+      title: "⚽ FutbolAI",
       loading: "Loading...",
       noMatches: "No matches found.",
       matchDetails: "📝 Match Details",
@@ -272,6 +445,9 @@
       notPlayed: "⏳ Match not played yet.",
       predictedScore: "🤖 AI Prediction",
       stadium: "Stadium",
+      allMatches: "All Matches",
+      upcoming: "Upcoming",
+      past: "Past",
       selectLeague: "Select League",
       selectLanguage: "Select Language",
       darkMode: "Dark/Light Mode",
@@ -279,34 +455,148 @@
   };
 
   let currentLang = languageSelect.value;
-  let currentLeague = leagueSelect.value;
+  let currentLeague = "203"; // Süper Lig default
+  let matches = [];
+  let filteredMatches = [];
+  let currentFilter = "all";
 
-  // Sayfa yüklendiğinde veri çek
+  // Dil değişimi
+  languageSelect.addEventListener("change", () => {
+    currentLang = languageSelect.value;
+    title.textContent = texts[currentLang].title;
+    updateFilterButtonsText();
+    loadMatches();
+  });
+
+  // Sidebar toggle
+  sidebarToggle.addEventListener("click", () => {
+    sidebar.classList.toggle("show");
+    mainContent.classList.toggle("shifted");
+    sidebarToggle.setAttribute("aria-expanded", sidebar.classList.contains("show"));
+  });
+
+  // Lig seçimi sidebar butonları
+  leagueButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      leagueButtons.forEach(b => b.classList.remove("active"));
+      btn.classList.add("active");
+      currentLeague = btn.getAttribute("data-league");
+      loadMatches();
+      sidebar.classList.remove("show");
+      mainContent.classList.remove("shifted");
+      sidebarToggle.setAttribute("aria-expanded", "false");
+      clearResult();
+    });
+  });
+
+  // Tarih filtresi butonları
+  filterButtons.forEach(btn => {
+    btn.addEventListener("click", () => {
+      filterButtons.forEach(b => {
+        b.classList.remove("active");
+        b.setAttribute("aria-pressed", "false");
+      });
+      btn.classList.add("active");
+      btn.setAttribute("aria-pressed", "true");
+      currentFilter = btn.getAttribute("data-filter");
+      renderMatches();
+      clearResult();
+    });
+  });
+
+  function updateFilterButtonsText(){
+    filterButtons.forEach(btn => {
+      if(btn.dataset.filter === "all") btn.textContent = texts[currentLang].allMatches;
+      else if(btn.dataset.filter === "future") btn.textContent = texts[currentLang].upcoming;
+      else if(btn.dataset.filter === "past") btn.textContent = texts[currentLang].past;
+    });
+  }
+
+  function clearResult(){
+    resultDiv.innerHTML = "";
+    resultDiv.classList.remove("show");
+  }
+
+  // Maçları çek
   async function loadMatches() {
     matchList.innerHTML = `<p>${texts[currentLang].loading}</p>`;
-    resultDiv.style.display = "none";
-    const res = await fetch(`https://v3.football.api-sports.io/fixtures?league=${currentLeague}&season=2024&next=20`, {
-      headers: { "x-apisports-key": API_KEY }
-    });
-    const data = await res.json();
-    const matches = data.response;
+    clearResult();
+    try {
+      // Süper Lig için sezon 2024, diğer ligler için sezon 2023 olabilir. Tüm maçları getirmek için tarih filtresi ile ayrım yapılacak.
+      const season = currentLeague === "203" ? 2024 : 2023;
 
+      // 50 maç getir (hem geçmiş hem gelecek)
+      const res = await fetch(`https://v3.football.api-sports.io/fixtures?league=${currentLeague}&season=${season}&last=30&next=30`, {
+        headers: { "x-apisports-key": API_KEY }
+      });
+      const data = await res.json();
+
+      // API bazen "last" ve "next" ayrı döner, biz merge yapacağız
+      let allMatches = data.response || [];
+
+      // Eğer last ve next ayrı istek olarak gelirse aşağıdaki gibi çekip birleştirebiliriz:
+      // Ama v3 API'de last + next tek istek çalışmayabilir, dolayısıyla önce last sonra next isteği yapıp birleştirebiliriz:
+
+      // Burada deniyoruz:
+      const lastRes = await fetch(`https://v3.football.api-sports.io/fixtures?league=${currentLeague}&season=${season}&last=30`, {
+        headers: { "x-apisports-key": API_KEY }
+      });
+      const nextRes = await fetch(`https://v3.football.api-sports.io/fixtures?league=${currentLeague}&season=${season}&next=30`, {
+        headers: { "x-apisports-key": API_KEY }
+      });
+      const lastData = await lastRes.json();
+      const nextData = await nextRes.json();
+
+      allMatches = [
+        ...(lastData.response || []),
+        ...(nextData.response || [])
+      ];
+
+      // Tarihe göre sırala, en eski en üstte
+      allMatches.sort((a,b) => new Date(a.fixture.date) - new Date(b.fixture.date));
+
+      matches = allMatches;
+      renderMatches();
+    } catch(e) {
+      console.error(e);
+      matchList.innerHTML = `<p style="color:red;">${texts[currentLang].noMatches}</p>`;
+    }
+  }
+
+  function renderMatches() {
     if (!matches.length) {
+      matchList.innerHTML = `<p>${texts[currentLang].noMatches}</p>`;
+      return;
+    }
+    const now = new Date();
+
+    // Filtreye göre filtrele
+    filteredMatches = matches.filter(m => {
+      const matchDate = new Date(m.fixture.date);
+      if (currentFilter === "future") return matchDate > now;
+      if (currentFilter === "past") return matchDate < now;
+      return true;
+    });
+
+    if (filteredMatches.length === 0) {
       matchList.innerHTML = `<p>${texts[currentLang].noMatches}</p>`;
       return;
     }
 
     matchList.innerHTML = "";
-
-    matches.forEach(match => {
+    filteredMatches.forEach((match, i) => {
       const div = document.createElement("div");
       div.className = "match-card";
-      const date = new Date(match.fixture.date).toLocaleString(currentLang === 'tr' ? "tr-TR" : "en-US");
+      div.style.animationDelay = `${i*0.08}s`;
+
+      const dateLocale = new Date(match.fixture.date).toLocaleString(currentLang==='tr'?'tr-TR':'en-US', {
+        day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+      });
 
       div.setAttribute("tabindex", "0");
       div.setAttribute("role", "button");
       div.setAttribute("aria-pressed", "false");
-      div.setAttribute("aria-label", `${match.teams.home.name} vs ${match.teams.away.name} ${date}`);
+      div.setAttribute("aria-label", `${match.teams.home.name} vs ${match.teams.away.name} - ${dateLocale}`);
 
       div.innerHTML = `
         <div class="teams" >
@@ -314,12 +604,10 @@
           <div><strong>vs</strong></div>
           <div>${match.teams.away.name} <img src="${match.teams.away.logo}" alt="${match.teams.away.name} logosu"></div>
         </div>
-        <div class="match-date">${date}</div>
+        <div class="match-date">${dateLocale}</div>
       `;
 
-      // Tıklanınca detay göster
       div.onclick = () => showMatch(match);
-      // Klavye ile açmak için
       div.onkeypress = e => { if(e.key === "Enter" || e.key === " ") showMatch(match); };
 
       matchList.appendChild(div);
@@ -330,19 +618,21 @@
     const fixtureId = match.fixture.id;
     const home = match.teams.home;
     const away = match.teams.away;
-    const date = new Date(match.fixture.date).toLocaleString(currentLang === 'tr' ? "tr-TR" : "en-US");
+    const dateLocale = new Date(match.fixture.date).toLocaleString(currentLang === 'tr' ? "tr-TR" : "en-US", {
+      day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit"
+    });
 
     let html = `
       <h2>${texts[currentLang].matchDetails}</h2>
-      <div class="teams">
+      <div class="teams" >
         <div><img src="${home.logo}" alt="${home.name} logosu"> ${home.name}</div>
         <div><strong>vs</strong></div>
         <div>${away.name} <img src="${away.logo}" alt="${away.name} logosu"></div>
       </div>
-      <p><strong>${texts[currentLang].date}:</strong> ${date}</p>
+      <p><strong>${texts[currentLang].date}:</strong> ${dateLocale}</p>
     `;
 
-    if (match.fixture.status.short === "FT") {
+    if (match.fixture.status.short === "FT" || match.fixture.status.short === "AET" || match.fixture.status.short === "PEN") {
       html += `<p><strong>${texts[currentLang].score}:</strong> <span class="highlight">${match.goals.home} - ${match.goals.away}</span></p>`;
 
       // Önemli Anlar
@@ -350,17 +640,18 @@
         const eventsRes = await fetch(`https://v3.football.api-sports.io/fixtures/events?fixture=${fixtureId}`, {
           headers: { "x-apisports-key": API_KEY }
         });
-        const events = await eventsRes.json();
+        const eventsData = await eventsRes.json();
 
-        if (events.response.length > 0) {
+        if (eventsData.response.length > 0) {
           html += `<h3>${texts[currentLang].importantMoments}</h3><ul>`;
-          events.response.forEach(e => {
-            html += `<li>${e.time.elapsed}' - ${e.player.name} (${e.type} - ${e.detail})</li>`;
+          eventsData.response.forEach(e => {
+            const extra = e.detail === "Goal" && e.extra && e.extra.assist ? ` (Asist: ${e.extra.assist.name})` : "";
+            html += `<li>${e.time.elapsed}' - ${e.player.name} (${e.type} - ${e.detail})${extra}</li>`;
           });
           html += `</ul>`;
         }
       } catch {
-        html += `<p>⚠️ Events bilgisi alınamadı.</p>`;
+        html += `<p style="color:#d9534f;">⚠️ Events bilgisi alınamadı.</p>`;
       }
 
       // İlk 11
@@ -377,11 +668,11 @@
           });
         }
       } catch {
-        html += `<p>⚠️ Lineup bilgisi alınamadı.</p>`;
+        html += `<p style="color:#d9534f;">⚠️ Lineup bilgisi alınamadı.</p>`;
       }
     } else {
       html += `<p>${texts[currentLang].notPlayed}</p>`;
-      html += `<p><strong>${texts[currentLang].stadium}:</strong> ${match.fixture.venue.name} (${match.fixture.venue.city})</p>`;
+      html += `<p><strong>${texts[currentLang].stadium}:</strong> ${match.fixture.venue.name || "Bilgi yok"} (${match.fixture.venue.city || "Bilinmiyor"})</p>`;
 
       // Basit skor tahmini (rastgele)
       const predHome = Math.floor(Math.random() * 4);
@@ -391,29 +682,18 @@
     }
 
     resultDiv.innerHTML = html;
-    resultDiv.style.display = "block";
+    resultDiv.classList.add("show");
+    resultDiv.focus();
     resultDiv.scrollIntoView({ behavior: "smooth" });
   }
-
-  // Dil ve Lig seçince yenile
-  languageSelect.onchange = () => {
-    currentLang = languageSelect.value;
-    // Başlık güncelle
-    title.textContent = texts[currentLang].title;
-    loadMatches();
-  };
-
-  leagueSelect.onchange = () => {
-    currentLeague = leagueSelect.value;
-    loadMatches();
-  };
 
   function toggleDark() {
     document.body.classList.toggle("dark-mode");
   }
 
-  // Sayfa yüklendiğinde
+  // İlk yükleme
   loadMatches();
+
 </script>
 
 </body>
