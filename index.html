@@ -2,121 +2,163 @@
 <html lang="tr">
 <head>
   <meta charset="UTF-8">
-  <title>FutbolAI - Süper Lig Maç Tahminleri</title>
+  <title>FutbolAI - Süper Lig Tahmin</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <style>
+    :root {
+      --bg: #f5f7fa;
+      --text: #222;
+      --card: #fff;
+      --highlight: #28a745;
+    }
+    body.dark-mode {
+      --bg: #121212;
+      --text: #eee;
+      --card: #1e1e1e;
+      --highlight: #90ee90;
+    }
+
     body {
+      background: var(--bg);
+      color: var(--text);
       font-family: 'Segoe UI', sans-serif;
-      background: #f0f2f5;
       margin: 0;
       padding: 20px;
-      transition: background 0.3s, color 0.3s;
+      transition: all 0.3s ease;
     }
-    .dark-mode {
-      background: #121212;
-      color: #e0e0e0;
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
     }
-    .container {
-      max-width: 800px;
-      margin: auto;
-    }
+
     h1 {
-      text-align: center;
-      margin-bottom: 20px;
+      font-size: 24px;
     }
-    select, button {
-      padding: 10px;
-      font-size: 16px;
-      margin-bottom: 20px;
-      width: 100%;
+
+    .toggle-btn {
+      background: none;
+      border: 1px solid var(--text);
+      padding: 5px 10px;
+      border-radius: 5px;
+      cursor: pointer;
     }
-    .card {
-      background: white;
+
+    .match-list {
+      display: grid;
+      gap: 15px;
+    }
+
+    .match-card {
+      background: var(--card);
+      padding: 15px;
       border-radius: 10px;
-      padding: 20px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-      margin-top: 20px;
-      transition: background 0.3s, color 0.3s;
+      cursor: pointer;
+      transition: transform 0.2s ease;
     }
-    .dark-mode .card {
-      background: #1e1e1e;
+
+    .match-card:hover {
+      transform: scale(1.01);
     }
-    .highlight { color: green; font-weight: bold; }
+
     .teams {
       display: flex;
       justify-content: space-between;
       align-items: center;
+      margin-bottom: 10px;
     }
-    .teams img { width: 50px; height: 50px; }
-    .dark-mode select, .dark-mode button {
-      background: #333;
-      color: #fff;
-      border: 1px solid #555;
+
+    .teams img {
+      width: 40px;
+      height: 40px;
     }
-    .toggle-btn {
-      position: absolute;
-      right: 20px;
-      top: 20px;
-      padding: 5px 10px;
-      cursor: pointer;
+
+    .match-date {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    #result {
+      background: var(--card);
+      padding: 20px;
+      margin-top: 20px;
+      border-radius: 10px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    }
+
+    .highlight {
+      color: var(--highlight);
+      font-weight: bold;
+    }
+
+    @media (max-width: 600px) {
+      .teams {
+        flex-direction: column;
+        gap: 5px;
+      }
     }
   </style>
 </head>
 <body>
 
-  <button class="toggle-btn" onclick="toggleDark()">🌙</button>
+  <header>
+    <h1>⚽ FutbolAI - Süper Lig</h1>
+    <button class="toggle-btn" onclick="toggleDark()">🌙</button>
+  </header>
 
-  <div class="container">
-    <h1>⚽ FutbolAI - Süper Lig Maçları</h1>
+  <div id="matchList" class="match-list"></div>
 
-    <select id="matchSelect"></select>
-    <button onclick="showMatch()">Maç Bilgilerini Göster</button>
-
-    <div id="result" class="card" style="display:none;"></div>
-  </div>
+  <div id="result" style="display:none;"></div>
 
   <script>
     const API_KEY = "423dfe945e36f0e20c41891f56899c9a";
-    const matchSelect = document.getElementById("matchSelect");
+    const matchList = document.getElementById("matchList");
     const resultDiv = document.getElementById("result");
-    let matches = [];
 
-    // Dark Mode Toggle
     function toggleDark() {
       document.body.classList.toggle("dark-mode");
     }
 
     async function getMatches() {
       const res = await fetch("https://v3.football.api-sports.io/fixtures?league=203&season=2024", {
-        headers: {
-          "x-apisports-key": API_KEY
-        }
+        headers: { "x-apisports-key": API_KEY }
       });
       const data = await res.json();
-      matches = data.response;
+      const matches = data.response.slice(0, 10); // İlk 10 maç
 
       matches.forEach((match, i) => {
-        const option = document.createElement("option");
+        const div = document.createElement("div");
+        div.className = "match-card";
         const date = new Date(match.fixture.date).toLocaleString("tr-TR");
-        option.value = i;
-        option.textContent = `${match.teams.home.name} vs ${match.teams.away.name} (${date})`;
-        matchSelect.appendChild(option);
+
+        div.innerHTML = `
+          <div class="teams">
+            <div><img src="${match.teams.home.logo}" alt=""> ${match.teams.home.name}</div>
+            <div><strong>vs</strong></div>
+            <div>${match.teams.away.name} <img src="${match.teams.away.logo}" alt=""></div>
+          </div>
+          <div class="match-date">${date}</div>
+        `;
+        div.onclick = () => showMatch(match);
+        matchList.appendChild(div);
       });
     }
 
-    async function showMatch() {
-      const index = matchSelect.value;
-      const match = matches[index];
+    async function showMatch(match) {
       const fixtureId = match.fixture.id;
       const home = match.teams.home;
       const away = match.teams.away;
       const date = new Date(match.fixture.date).toLocaleString("tr-TR");
 
       let html = `
+        <h2>📝 Maç Detayları</h2>
         <div class="teams">
-          <div><img src="${home.logo}"> ${home.name}</div>
+          <div><img src="${home.logo}" alt=""> ${home.name}</div>
           <div><strong>vs</strong></div>
-          <div>${away.name} <img src="${away.logo}"></div>
+          <div>${away.name} <img src="${away.logo}" alt=""></div>
         </div>
         <p><strong>Tarih:</strong> ${date}</p>
       `;
@@ -124,7 +166,6 @@
       if (match.fixture.status.short === "FT") {
         html += `<p><strong>Skor:</strong> <span class="highlight">${match.goals.home} - ${match.goals.away}</span></p>`;
 
-        // Önemli anlar
         const eventsRes = await fetch(`https://v3.football.api-sports.io/fixtures/events?fixture=${fixtureId}`, {
           headers: { "x-apisports-key": API_KEY }
         });
@@ -138,32 +179,32 @@
           html += `</ul>`;
         }
 
-        // İlk 11
         const lineupRes = await fetch(`https://v3.football.api-sports.io/fixtures/lineups?fixture=${fixtureId}`, {
           headers: { "x-apisports-key": API_KEY }
         });
         const lineups = await lineupRes.json();
 
         if (lineups.response.length > 0) {
-          html += `<h3>🧑‍💼 İlk 11'ler</h3>`;
+          html += `<h3>👥 İlk 11</h3>`;
           lineups.response.forEach(team => {
             html += `<strong>${team.team.name}</strong>: ${team.startXI.map(p => p.player.name).join(", ")}<br><br>`;
           });
         }
+
       } else {
-        html += `<p>🕒 Maç henüz oynanmadı.</p>`;
+        html += `<p>⏳ Maç henüz oynanmadı.</p>`;
         const predHome = Math.floor(Math.random() * 4);
         const predAway = Math.floor(Math.random() * 4);
-        html += `<h3>🧠 AI Tahmini</h3>`;
-        html += `<p><strong>Tahmin Skor:</strong> <span class="highlight">${predHome} - ${predAway}</span></p>`;
+        html += `<h3>🤖 AI Tahmini</h3>`;
+        html += `<p><strong>Tahmini Skor:</strong> <span class="highlight">${predHome} - ${predAway}</span></p>`;
       }
 
       resultDiv.innerHTML = html;
       resultDiv.style.display = "block";
+      resultDiv.scrollIntoView({ behavior: 'smooth' });
     }
 
     getMatches();
   </script>
-
 </body>
 </html>
